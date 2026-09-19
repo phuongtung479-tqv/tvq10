@@ -520,6 +520,10 @@ function FormModal({ onClose }: ModalProps) {
   const { config, update } = useSiteConfig();
   const form = config.form;
   const [leadTestMessage, setLeadTestMessage] = useState<string | null>(null);
+  const [webhookTestMessage, setWebhookTestMessage] = useState<string | null>(
+    null,
+  );
+  const [testingWebhook, setTestingWebhook] = useState(false);
   const storageStatus = getStorageStatus(config);
 
   return (
@@ -561,6 +565,47 @@ function FormModal({ onClose }: ModalProps) {
           onChange={(e) => update((d) => (d.form.webhookUrl = e.target.value))}
         />
       </Field>
+      <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
+        <button
+          type="button"
+          disabled={testingWebhook || !form.webhookUrl.trim()}
+          onClick={() => {
+            setTestingWebhook(true);
+            setWebhookTestMessage(null);
+            void testWebhookEndpoint(
+              {
+                id: "primary-test",
+                label: "Webhook chính",
+                url: form.webhookUrl,
+                enabled: true,
+                type: "make",
+              },
+              config,
+            )
+              .then((result) => {
+                setWebhookTestMessage(
+                  result.ok
+                    ? "Webhook chính trả HTTP thành công. Hãy kiểm tra scenario Make và lịch sử webhook."
+                    : `Webhook thất bại: ${result.detail || "không rõ lỗi"}`,
+                );
+              })
+              .catch((error: unknown) => {
+                setWebhookTestMessage(
+                  error instanceof Error ? error.message : "Không kiểm tra được webhook.",
+                );
+              })
+              .finally(() => setTestingWebhook(false));
+          }}
+          className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {testingWebhook ? "Đang kiểm tra webhook..." : "Test webhook chính"}
+        </button>
+        {webhookTestMessage && (
+          <p className="mt-2 text-[11px] font-semibold text-sky-900">
+            {webhookTestMessage}
+          </p>
+        )}
+      </div>
       <Field label="Redirect sau khi gửi (tùy chọn)">
         <TextInput
           value={form.redirectUrl}
