@@ -1,0 +1,16 @@
+node_modules
+.output/
+.wrangler/
+dist/
+build/
+coverage/
+test-results/
+playwright-report/
+*.tar.gz
+*.zip
+.DS_Store
+**/.DS_Store
+.env
+.env.*
+!.env.example
+.env
