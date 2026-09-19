@@ -615,6 +615,8 @@ export function buildVisitorBehaviorPayload(
   salesAdviceConfig?: {
     saleAdviceTemplate?: string;
     behaviorSummaryTemplate?: string;
+    deviceTechInfoTemplate?: string;
+    trafficAdsSourceTemplate?: string;
   },
 ): {
   behavior: BehaviorData;

@@ -101,7 +101,9 @@ export const decrementCountdownWithServiceRole = createServerFn({
       data?: { countdown?: { slotsLeft?: number; enabled?: boolean; headline?: string } };
     }>;
     const dataRow = rows[0]?.data as Record<string, unknown> | undefined;
-    const countdown = dataRow?.countdown as Record<string, unknown> | undefined;
+    const countdown = dataRow?.["countdown"] as
+      | Record<string, unknown>
+      | undefined;
     const nextData = structuredClone((dataRow ?? {}) as Record<string, unknown>);
     const currentSlots = Number(
       countdown && typeof countdown["slotsLeft"] !== "undefined"

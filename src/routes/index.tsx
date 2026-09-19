@@ -28,7 +28,7 @@ import { FOOTER } from "@/lib/config";
 import { GraduationCap, Menu, X } from "lucide-react";
 
 const TITLE = "Du Học Nghề Trung Quốc 0Đ | Vừa Học Vừa Làm Lương 15-30 Triệu";
-const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://tvq4.vercel.app")
+const SITE_URL = (import.meta.env["VITE_SITE_URL"] || "https://tvq4.vercel.app")
   .trim()
   .replace(/\/$/, "");
 const DESC =
