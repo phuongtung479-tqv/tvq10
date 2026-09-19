@@ -14,7 +14,6 @@ export interface WebhookResult {
 }
 
 const TIMEOUT_MS = 4_000;
-const RETRIES = 0;
 const MAX_PAYLOAD_BYTES = 60_000;
 
 function validUrl(value: string): boolean {
@@ -60,42 +59,6 @@ export function webhookConfigurationWarning(
     return "Cần cấu hình Supabase URL và anon key trong Storage trước";
   }
   return undefined;
-}
-
-async function requestWithRetry(
-  endpoint: string,
-  init: RequestInit,
-): Promise<{ response?: Response; attempts: number; detail?: string }> {
-  let detail = "Không thể kết nối";
-  for (let attempt = 1; attempt <= RETRIES + 1; attempt += 1) {
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), TIMEOUT_MS);
-    try {
-      const response = await fetch(endpoint, {
-        ...init,
-        signal: controller.signal,
-      });
-      window.clearTimeout(timer);
-      if (response.ok || response.status < 500) {
-        if (!response.ok) {
-          const responseText = await response.text().catch(() => "");
-          detail =
-            responseText.trim().slice(0, 180) || `HTTP ${response.status}`;
-        }
-        return { response, attempts: attempt, detail };
-      }
-      detail = `HTTP ${response.status}`;
-    } catch (error) {
-      window.clearTimeout(timer);
-      detail =
-        error instanceof DOMException && error.name === "AbortError"
-          ? "Timeout"
-          : (error as Error).message;
-    }
-    if (attempt <= RETRIES)
-      await new Promise((resolve) => window.setTimeout(resolve, attempt * 300));
-  }
-  return { attempts: RETRIES + 1, detail };
 }
 
 function telegramBody(url: string, payload: Record<string, unknown>) {
@@ -155,8 +118,8 @@ async function postOne(
         detail: "URL không hợp lệ hoặc không dùng HTTPS",
       };
 
-    // In-app browser thường chặn CORS tới Make/Sheets/Supabase. Ưu tiên relay
-    // cùng origin; nếu app đang chạy static hosting thì fallback về client fetch.
+    // Always use the server relay. A client fallback after a relay timeout can
+    // duplicate a request that already reached the endpoint.
     try {
       const relay = await Promise.race([
         relayWebhook({ data: { endpoint, body, headers } }),
@@ -164,9 +127,6 @@ async function postOne(
           window.setTimeout(() => resolve(null), TIMEOUT_MS),
         ),
       ]);
-      // Relay đã thực sự liên hệ được endpoint (dù thành công hay bị từ chối):
-      // dùng kết quả này luôn, không rơi xuống client fetch (sẽ chỉ bị CORS
-      // chặn và che mất lỗi thật, VD sai bot token/chat_id Telegram).
       if (relay) {
         return {
           label: ep.label || ep.type,
@@ -177,24 +137,20 @@ async function postOne(
             : relay.detail || `HTTP ${relay.status}`,
         };
       }
-    } catch {
-      // Static build/server function unavailable: use direct request below.
-    }
-
-    const result = await requestWithRetry(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      keepalive: true,
-    });
-    if (!result.response?.ok)
       return {
         label: ep.label || ep.type,
         ok: false,
-        attempts: result.attempts,
-        detail: result.detail || `HTTP ${result.response?.status}`,
+        attempts: 1,
+        detail: "Server relay timeout",
       };
-    return { label: ep.label || ep.type, ok: true, attempts: result.attempts };
+    } catch {
+      return {
+        label: ep.label || ep.type,
+        ok: false,
+        attempts: 1,
+        detail: "Server relay unavailable",
+      };
+    }
   } catch (err) {
     return {
       label: ep.label || ep.type,

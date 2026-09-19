@@ -382,29 +382,24 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
         operatingSystem: payload.operating_system,
         browser: payload.browser,
       };
-      // Lưu local và gửi các kênh từ xa song song; một request cross-origin bị
-      // chặn trong in-app browser không được giữ các kênh còn lại lại.
+      // Lưu lead trước, sau đó xác nhận webhook chính trước khi báo thành công
+      // để redirect không hủy request gửi dữ liệu.
       const savePromise = saveLead(leadRecord, config).then((saved) => {
         leadSaved = true;
         return saved;
       });
       leadDispatchStarted = true;
       const savedLead = await savePromise;
-      void dispatchLead(config, payload)
-        .then((delivery) => {
-          if (!delivery.ok) {
-            const failed = delivery.results
-              .filter((result) => !result.ok)
-              .map((result) => result.label)
-              .join(", ");
-            console.warn(
-              `Webhook delivery degraded (${delivery.failedCount ?? 0}/${delivery.results.length || 0}): ${failed || "unknown"}`,
-            );
-          }
-        })
-        .catch((error) => {
-          console.warn("Webhook delivery failed after lead save:", error);
-        });
+      const delivery = await dispatchLead(config, payload);
+      if (!delivery.ok) {
+        const failed = delivery.results
+          .filter((result) => !result.ok)
+          .map((result) => `${result.label}: ${result.detail || "không rõ lỗi"}`)
+          .join("; ");
+        throw new Error(
+          `Lead đã lưu nhưng webhook chưa nhận dữ liệu (${failed || "không có endpoint thành công"}).`,
+        );
+      }
       if (
         config.admin.storageMode === "database" &&
         savedLead.storage !== "database"
@@ -710,13 +705,15 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
           console.error("Fallback lead delivery failed:", fallbackError);
         }
       }
-      setError(
-        "Có lỗi khi gửi thông tin. Vui lòng kiểm tra kết nối v�� thử gửi lại.",
-      );
+      const failureMessage =
+        err instanceof Error && err.message.startsWith("Lead đã lưu")
+          ? err.message
+          : "Có lỗi khi gửi thông tin. Vui lòng kiểm tra kết nối và thử lại.";
+      setError(failureMessage);
       submittingRef.current = false;
       setStatus("error");
       toast.error("Gửi chưa thành công", {
-        description: "Vui lòng thử lại sau vài giây.",
+        description: failureMessage,
       });
     }
   }
