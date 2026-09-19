@@ -62,11 +62,15 @@ function writePayload(payload) {
     const sheet = spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
     const headers = [
       "received_at", "event", "webhook_delivery_id", "idempotency_key",
-      "full_name", "phone", "email", "city", "major", "source",
+      "created_at", "full_name", "phone", "email", "city", "major", "source",
+      "landing_url", "ab_variant", "ai_score", "ai_rank", "risk_level",
+      "risk_reasons", "recommended_action", "sale_advice", "behavior_summary",
+      "device_tech_info", "traffic_ads_source", "visits_today", "visits_month",
+      "current_session", "device_manufacturer", "device_family", "device_model_name",
+      "operating_system", "browser", "network_provider", "network_label",
       "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
-      "landing_url", "ai_score", "ai_rank", "risk_level", "recommended_action",
-      "sale_advice", "behavior_summary", "device_tech_info", "traffic_ads_source",
-      "raw_payload"
+      "ttclid", "fbclid", "gclid", "referrer", "attribution_model",
+      "attribution_detected_by", "raw_query", "utm_params", "raw_payload"
     ];
     ensureHeaders(sheet, headers);
     sheet.appendRow(headers.map(function(header) {

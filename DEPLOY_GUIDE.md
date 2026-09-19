@@ -323,6 +323,7 @@ E2E_ADMIN_EMAIL=admin@example.com E2E_ADMIN_PASSWORD='mat-khau-test' npm exec pl
 ## H. Google Sheets webhook không qua Make
 
 Dùng file `scripts/google-sheets-webhook.gs` để thay Make khi Make hết quota.
+Danh sách đầy đủ biến và ý nghĩa nằm trong [docs/WEBHOOK_FIELDS.md](docs/WEBHOOK_FIELDS.md).
 
 1. Tạo một Google Sheet mới.
 2. Mở **Extensions → Apps Script**.
