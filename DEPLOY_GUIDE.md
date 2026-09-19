@@ -336,6 +336,12 @@ Dùng file `scripts/google-sheets-webhook.gs` để thay Make khi Make hết quo
     - Enabled: bật
 8. Bấm **Lưu ngay**, rồi bấm **Test webhook chính** hoặc test endpoint Sheets.
 
+Nếu Apps Script báo `autoRemoveEmptyRows đã bị xóa`, đó là trigger cũ còn sót
+lại trong project, không phải lỗi webhook mới. Chạy hàm `removeLegacyTriggers`
+một lần trong Apps Script, cấp quyền nếu được hỏi, rồi vào **Triggers** và xóa
+mọi trigger còn gọi `autoRemoveEmptyRows`. Không tạo trigger cho `doPost`; Web App
+tự gọi `doPost` khi nhận HTTP POST.
+
 Khi submit form, Apps Script ghi một dòng vào tab `Leads`. Script lưu cả các trường
 UTM, AI, hành vi và `raw_payload`. `idempotency_key`/`webhook_delivery_id` được
 dùng để bỏ qua request trùng.

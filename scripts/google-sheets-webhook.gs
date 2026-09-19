@@ -1,6 +1,19 @@
 const SHEET_NAME = "Leads";
 const DEDUPE_PREFIX = "tvq10_lead_";
 
+function removeLegacyTriggers() {
+  ScriptApp.getProjectTriggers().forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === "autoRemoveEmptyRows") {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+  return "Legacy autoRemoveEmptyRows triggers removed";
+}
+
+function doGet() {
+  return jsonResponse({ ok: true, service: "tvq10-google-sheets-webhook" });
+}
+
 function doPost(event) {
   try {
     const payload = parsePayload(event);
