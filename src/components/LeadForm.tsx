@@ -389,10 +389,22 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
         return saved;
       });
       leadDispatchStarted = true;
-      const [savedLead, delivery] = await Promise.all([
-        savePromise,
-        dispatchLead(config, payload),
-      ]);
+      const savedLead = await savePromise;
+      void dispatchLead(config, payload)
+        .then((delivery) => {
+          if (!delivery.ok) {
+            const failed = delivery.results
+              .filter((result) => !result.ok)
+              .map((result) => result.label)
+              .join(", ");
+            console.warn(
+              `Webhook delivery degraded (${delivery.failedCount ?? 0}/${delivery.results.length || 0}): ${failed || "unknown"}`,
+            );
+          }
+        })
+        .catch((error) => {
+          console.warn("Webhook delivery failed after lead save:", error);
+        });
       if (
         config.admin.storageMode === "database" &&
         savedLead.storage !== "database"
@@ -401,30 +413,14 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
           "Database mode fallback to local storage: Supabase cloud sync unavailable; lead was still saved locally.",
         );
       }
-      if (!delivery.ok) {
-        const failed = delivery.results
-          .filter((result) => !result.ok)
-          .map((result) => result.label)
-          .join(", ");
-        console.warn(
-          `Webhook delivery degraded (${delivery.failedCount ?? 0}/${delivery.results.length || 0}): ${failed || "unknown"}`,
-        );
-      } else if (delivery.failedCount && delivery.failedCount > 0) {
-        const failed = delivery.results
-          .filter((result) => !result.ok)
-          .map((result) => result.label)
-          .join(", ");
-        console.warn(
-          `Webhook partial failure (${delivery.failedCount}/${delivery.results.length}): ${failed}`,
-        );
-      }
-      const countdownSaved = await decrementCountdown(savedLead.id);
-      if (!countdownSaved) {
-        toast.warning("Lead đã lưu, nhưng chưa cập nhật được số suất.", {
-          description:
-            "Kiểm tra SUPABASE_URL và SUPABASE_SERVICE_ROLE_KEY trên server rồi redeploy.",
-        });
-      }
+      void decrementCountdown(savedLead.id).then((countdownSaved) => {
+        if (!countdownSaved) {
+          toast.warning("Lead đã lưu, nhưng chưa cập nhật được số suất.", {
+            description:
+              "Kiểm tra SUPABASE_URL và SUPABASE_SERVICE_ROLE_KEY trên server rồi redeploy.",
+          });
+        }
+      });
 
       // Ghi nhận chuyển đổi cho Analytics Dashboard + A/B comparison.
       trackConversion(source, config.abTest.enabled ? variant : undefined);
@@ -444,37 +440,63 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
             detail: err instanceof Error ? err.message : String(err),
           }));
         const emailTasks: Promise<EmailTaskResult>[] = [];
+        const escapeHtml = (value: string) =>
+          value
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+        const templateValues: Record<string, string> = {
+          name: payload.full_name,
+          phone: payload.phone,
+          city: payload.city || "",
+          major: form.major || "",
+          source: source || "direct",
+          ai_score: String(aiScore),
+          timestamp: new Date().toLocaleString("vi-VN"),
+          landing_url: payload.landing_url,
+        };
         const fill = (s: string) =>
-          s
-            .replaceAll("{name}", payload.full_name)
-            .replaceAll("{phone}", payload.phone)
-            .replaceAll("{city}", payload.city || "")
-            .replaceAll("{major}", form.major || "")
-            .replaceAll("{source}", source || "direct")
-            .replaceAll("{ai_score}", String(aiScore))
-            .replaceAll("{timestamp}", new Date().toLocaleString("vi-VN"));
+          s.replace(/\{(\w+)\}/g, (_, key: string) => templateValues[key] ?? "");
+        const resolveCtaUrl = (template: string) => {
+          const filled = fill(template.trim());
+          if (!filled) return payload.landing_url;
+          try {
+            return new URL(filled, payload.landing_url).toString();
+          } catch {
+            return payload.landing_url;
+          }
+        };
         const brandName =
           config.emailAutomation.brandName?.trim() ||
           config.emailAutomation.headerText?.trim() ||
           "Funnel Builder";
         const brandLogo = config.emailAutomation.brandLogoUrl?.trim();
-        const ctaLabel =
-          config.emailAutomation.ctaLabel?.trim() || "Nhận tư vấn ngay";
-        const ctaUrl = config.emailAutomation.ctaUrl?.trim() || "#dang-ky";
-        const htmlBody = (s: string) => {
+        const htmlBody = (s: string, type: "customer" | "sales") => {
+          const ctaLabel =
+            (type === "customer"
+              ? config.emailAutomation.customerCtaLabel
+              : config.emailAutomation.salesCtaLabel)?.trim() ||
+            config.emailAutomation.ctaLabel?.trim() ||
+            (type === "customer" ? "Nhận tư vấn ngay" : "Mở lead trong CRM");
+          const ctaUrl = resolveCtaUrl(
+            type === "customer"
+              ? config.emailAutomation.customerCtaUrl || config.emailAutomation.ctaUrl
+              : config.emailAutomation.salesCtaUrl || config.emailAutomation.ctaUrl,
+          );
           const bodyHtml = s
             .replaceAll("\n", "<br />")
-            .replaceAll("{name}", `<strong>${payload.full_name}</strong>`)
-            .replaceAll("{phone}", `<strong>${payload.phone}</strong>`)
-            .replaceAll("{city}", payload.city || "—")
-            .replaceAll("{major}", form.major || "—")
-            .replaceAll("{source}", source || "direct")
-            .replaceAll("{ai_score}", String(aiScore))
-            .replaceAll("{timestamp}", new Date().toLocaleString("vi-VN"));
+            .replace(/\{(\w+)\}/g, (_, key: string) => {
+              const value = escapeHtml(templateValues[key] || "—");
+              return ["name", "phone"].includes(key)
+                ? `<strong>${value}</strong>`
+                : value;
+            });
           const brandMarkup = brandLogo
-            ? `<img src="${brandLogo}" alt="${brandName}" style="display:block;width:52px;height:52px;border-radius:14px;object-fit:cover;border:1px solid rgba(148,163,184,0.35);background:#fff;" />`
-            : `<div style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#475569;font-weight:700;">${brandName}</div>`;
-          return `<div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;padding:28px 24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;color:#0f172a;line-height:1.7"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid #e2e8f0;margin-bottom:16px;">${brandMarkup}<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#64748b;font-weight:700;">${brandName}</div></div>${bodyHtml}<div style="margin-top:18px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;"><a href="${ctaUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:700;">${ctaLabel}</a></div></div>`;
+            ? `<img src="${escapeHtml(brandLogo)}" alt="${escapeHtml(brandName)}" style="display:block;width:52px;height:52px;border-radius:14px;object-fit:cover;border:1px solid rgba(148,163,184,0.35);background:#fff;" />`
+            : "";
+          return `<div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;padding:28px 24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;color:#0f172a;line-height:1.7"><div style="display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid #e2e8f0;margin-bottom:16px;">${brandMarkup}<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#64748b;font-weight:700;">${escapeHtml(brandName)}</div></div>${bodyHtml}<div style="margin-top:18px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;"><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:700;">${escapeHtml(ctaLabel)}</a></div></div>`;
         };
         const parseSalesList = (value: string) =>
           value
@@ -551,8 +573,8 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
                 to: email,
                 from: config.emailAutomation.fromEmail,
                 subject: fill(config.emailAutomation.subject),
-                text: fill(config.emailAutomation.body),
-                html: htmlBody(config.emailAutomation.body),
+                text: `${fill(config.emailAutomation.body)}\n\n${fill(config.emailAutomation.customerCtaLabel || config.emailAutomation.ctaLabel || "Nhận tư vấn ngay")}: ${resolveCtaUrl(config.emailAutomation.customerCtaUrl || config.emailAutomation.ctaUrl)}`,
+                html: htmlBody(config.emailAutomation.body, "customer"),
                 resendApiKey: config.emailAutomation.resendApiKey,
                 gmailClientId: config.emailAutomation.gmailClientId,
                 gmailClientSecret: config.emailAutomation.gmailClientSecret,
@@ -570,8 +592,8 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
                 to: selectedSaleRecipient,
                 from: config.emailAutomation.fromEmail,
                 subject: fill(config.emailAutomation.notifySubject),
-                text: fill(config.emailAutomation.notifyBody),
-                html: htmlBody(config.emailAutomation.notifyBody),
+                text: `${fill(config.emailAutomation.notifyBody)}\n\n${fill(config.emailAutomation.salesCtaLabel || "Mở lead trong CRM")}: ${resolveCtaUrl(config.emailAutomation.salesCtaUrl || config.emailAutomation.ctaUrl)}`,
+                html: htmlBody(config.emailAutomation.notifyBody, "sales"),
                 resendApiKey: config.emailAutomation.resendApiKey,
                 gmailClientId: config.emailAutomation.gmailClientId,
                 gmailClientSecret: config.emailAutomation.gmailClientSecret,
@@ -587,8 +609,8 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
                 to: directNotify,
                 from: config.emailAutomation.fromEmail,
                 subject: fill(config.emailAutomation.notifySubject),
-                text: fill(config.emailAutomation.notifyBody),
-                html: htmlBody(config.emailAutomation.notifyBody),
+                text: `${fill(config.emailAutomation.notifyBody)}\n\n${fill(config.emailAutomation.salesCtaLabel || "Mở lead trong CRM")}: ${resolveCtaUrl(config.emailAutomation.salesCtaUrl || config.emailAutomation.ctaUrl)}`,
+                html: htmlBody(config.emailAutomation.notifyBody, "sales"),
                 resendApiKey: config.emailAutomation.resendApiKey,
                 gmailClientId: config.emailAutomation.gmailClientId,
                 gmailClientSecret: config.emailAutomation.gmailClientSecret,
@@ -610,16 +632,17 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
           });
         }
 
-        const emailResults = await Promise.all(emailTasks);
-        const failedEmail = emailResults.find((result) => !result.sent);
-        if (failedEmail) {
-          console.warn("Automated email failed:", failedEmail);
-          toast.warning("Lead đã lưu, nhưng email chưa gửi được.", {
-            description:
-              failedEmail.detail ||
-              `Kiểm tra cấu hình Resend (${failedEmail.reason || "provider_error"}).`,
-          });
-        }
+        void Promise.all(emailTasks).then((emailResults) => {
+          const failedEmail = emailResults.find((result) => !result.sent);
+          if (failedEmail) {
+            console.warn("Automated email failed:", failedEmail);
+            toast.warning("Lead đã lưu, nhưng email chưa gửi được.", {
+              description:
+                failedEmail.detail ||
+                `Kiểm tra cấu hình Resend (${failedEmail.reason || "provider_error"}).`,
+            });
+          }
+        });
       }
       } catch (emailErr) {
         console.warn("Automated email step crashed, submit still succeeds:", emailErr);

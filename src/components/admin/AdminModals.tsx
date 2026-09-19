@@ -71,6 +71,20 @@ function ExitIntentModal({ onClose }: ModalProps) {
   const { config, update } = useSiteConfig();
   const e = config.exitIntent;
   const status = getStorageStatus(config);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  function uploadExitImage(file: File) {
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 2 * 1024 * 1024) {
+      window.alert("Ảnh popup cần là PNG, JPG hoặc WebP và tối đa 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return;
+      update((d) => (d.exitIntent.imageUrl = reader.result as string));
+    };
+    reader.readAsDataURL(file);
+  }
 
   return (
     <AdminModal
@@ -117,6 +131,24 @@ function ExitIntentModal({ onClose }: ModalProps) {
               </button>
             </div>
           </Field>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) uploadExitImage(file);
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            className="rounded-lg bg-neutral-900 px-3 py-2 text-xs font-bold text-white"
+          >
+            Tải ảnh popup lên
+          </button>
           <Field label="Alt text ảnh">
             <TextInput
               value={e.imageAlt}
@@ -2534,6 +2566,14 @@ function EmailModal({ onClose }: ModalProps) {
     const leadLogo = e.brandLogoUrl?.trim();
     const leadBadge =
       type === "customer" ? "Lead khách hàng" : "Lead sales team";
+    const previewCtaLabel =
+      type === "customer"
+        ? e.customerCtaLabel || e.ctaLabel || "Nhận tư vấn ngay"
+        : e.salesCtaLabel || "Mở lead trong CRM";
+    const previewCtaUrl =
+      type === "customer"
+        ? e.customerCtaUrl || e.ctaUrl || "#dang-ky"
+        : e.salesCtaUrl || e.ctaUrl || "#dang-ky";
     const badgeStyle =
       type === "customer"
         ? "background:rgba(255,255,255,0.16);color:#fff;"
@@ -2561,7 +2601,7 @@ function EmailModal({ onClose }: ModalProps) {
           <div style="font-size:14px;line-height:1.8;color:#334155;white-space:pre-wrap;">${filledBody.replace(/\n/g, "<br />")}</div>
           <div style="margin-top:18px;border-top:1px solid ${brandPalette.line};padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:${brandPalette.muted};font-size:12px;">
             <span>Hoàn tất trong 10 phút</span>
-            <a href="${e.ctaUrl || "#dang-ky"}" style="display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;background:${brandPalette.soft};border:1px solid ${brandPalette.line};font-weight:700;color:${accent};text-decoration:none;">${e.ctaLabel || "Nhận tư vấn ngay"}</a>
+            <a href="${previewCtaUrl}" style="display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;background:${brandPalette.soft};border:1px solid ${brandPalette.line};font-weight:700;color:${accent};text-decoration:none;">${previewCtaLabel}</a>
           </div>
         </div>
       </div>
@@ -2636,7 +2676,7 @@ function EmailModal({ onClose }: ModalProps) {
               placeholder="https://.../logo.png"
             />
           </Field>
-          <Field label="CTA text trong email">
+          <Field label="CTA mặc định trong email">
             <TextInput
               value={e.ctaLabel}
               onChange={(ev) =>
@@ -2645,13 +2685,55 @@ function EmailModal({ onClose }: ModalProps) {
               placeholder="Nhận tư vấn ngay"
             />
           </Field>
-          <Field label="CTA link">
+          <Field label="Link CTA mặc định">
             <TextInput
               value={e.ctaUrl}
               onChange={(ev) =>
                 update((d) => (d.emailAutomation.ctaUrl = ev.target.value))
               }
               placeholder="https://example.com/booking"
+            />
+          </Field>
+          <Field label="CTA khách hàng">
+            <TextInput
+              value={e.customerCtaLabel || e.ctaLabel}
+              onChange={(ev) =>
+                update((d) => (d.emailAutomation.customerCtaLabel = ev.target.value))
+              }
+              placeholder="Nhận tư vấn ngay"
+            />
+          </Field>
+          <Field
+            label="Deeplink CTA khách"
+            hint="Hỗ trợ {name} {phone} {city} {major} {source} {landing_url}"
+          >
+            <TextInput
+              value={e.customerCtaUrl || e.ctaUrl}
+              onChange={(ev) =>
+                update((d) => (d.emailAutomation.customerCtaUrl = ev.target.value))
+              }
+              placeholder="{landing_url}#dang-ky"
+            />
+          </Field>
+          <Field label="CTA sale">
+            <TextInput
+              value={e.salesCtaLabel || "Mở lead trong CRM"}
+              onChange={(ev) =>
+                update((d) => (d.emailAutomation.salesCtaLabel = ev.target.value))
+              }
+              placeholder="Mở lead trong CRM"
+            />
+          </Field>
+          <Field
+            label="Deeplink CTA sale"
+            hint="Hỗ trợ {name} {phone} {city} {major} {source} {landing_url}"
+          >
+            <TextInput
+              value={e.salesCtaUrl || "{landing_url}#dang-ky"}
+              onChange={(ev) =>
+                update((d) => (d.emailAutomation.salesCtaUrl = ev.target.value))
+              }
+              placeholder="https://crm.example.com/leads/{phone}"
             />
           </Field>
         </div>
@@ -4608,6 +4690,7 @@ function LandingEditorModal({ onClose }: ModalProps) {
   const heroImageInputRef = useRef<HTMLInputElement>(null);
   const heroSliderInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const galleryReplaceRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const graduationInputRef = useRef<HTMLInputElement>(null);
   const expertInputRef = useRef<HTMLInputElement>(null);
   const [logoError, setLogoError] = useState("");
@@ -4905,7 +4988,10 @@ function LandingEditorModal({ onClose }: ModalProps) {
         /^image\/(png|jpeg|webp)$/.test(file.type) &&
         file.size <= 2 * 1024 * 1024,
     );
-    if (selected.length === 0) return;
+    if (selected.length === 0) {
+      window.alert("Vui lòng chọn PNG/JPG/WebP tối đa 2MB mỗi ảnh.");
+      return;
+    }
     Promise.all(selected.map((file) => readImageDataUrl(file))).then(
       (images) => {
         update((draft) => {
@@ -4920,6 +5006,19 @@ function LandingEditorModal({ onClose }: ModalProps) {
         });
       },
     );
+  }
+  function replaceGalleryImage(index: number, file: File) {
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 2 * 1024 * 1024) {
+      window.alert("Ảnh gallery cần là PNG, JPG hoặc WebP và tối đa 2MB.");
+      return;
+    }
+    readImageDataUrl(file)
+      .then((image) =>
+        update((draft) => {
+          draft.landing.galleryImageUrls[index] = image;
+        }),
+      )
+      .catch(() => window.alert("Không thể đọc ảnh gallery."));
   }
   const GRADUATION_IMAGE_LIMIT = 25;
   function uploadGraduationImages(files: FileList) {
@@ -6274,6 +6373,27 @@ function LandingEditorModal({ onClose }: ModalProps) {
                   className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white opacity-0 transition group-hover:opacity-100"
                 >
                   ✕
+                </button>
+                <input
+                  ref={(element) => {
+                    galleryReplaceRefs.current[i] = element;
+                  }}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) replaceGalleryImage(i, file);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => galleryReplaceRefs.current[i]?.click()}
+                  aria-label="Thay ảnh"
+                  className="absolute bottom-0.5 left-0.5 rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-bold text-white opacity-0 transition group-hover:opacity-100"
+                >
+                  Thay
                 </button>
               </div>
             ))}

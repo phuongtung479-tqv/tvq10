@@ -327,6 +327,10 @@ export interface SiteConfig {
     headerText: string;
     ctaLabel: string;
     ctaUrl: string;
+    customerCtaLabel: string;
+    customerCtaUrl: string;
+    salesCtaLabel: string;
+    salesCtaUrl: string;
     resendApiKey: string;
     gmailClientId: string;
     gmailClientSecret: string;
@@ -968,6 +972,10 @@ export const DEFAULT_CONFIG: SiteConfig = {
     headerText: "Funnel Builder",
     ctaLabel: "Nhận tư vấn ngay",
     ctaUrl: "#dang-ky",
+    customerCtaLabel: "Nhận tư vấn ngay",
+    customerCtaUrl: "#dang-ky",
+    salesCtaLabel: "Mở lead trong CRM",
+    salesCtaUrl: "{landing_url}#dang-ky",
     resendApiKey: "",
     gmailClientId: "",
     gmailClientSecret: "",

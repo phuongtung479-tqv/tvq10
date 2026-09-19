@@ -25,7 +25,7 @@ export const ANALYTICS_UPDATED_EVENT = "funnel:analytics-updated";
 const CLOUD_CONFIG_TABLE = "funnel_configs";
 const LOCAL_MIGRATION_KEY = "funnel_supabase_migrated_leads_v1";
 const REMOTE_LEAD_TIMEOUT_MS = 3_000;
-const REMOTE_DUPLICATE_TIMEOUT_MS = 1_500;
+const REMOTE_DUPLICATE_TIMEOUT_MS = 800;
 
 function bearer(key: string): string {
   return getSupabaseAccessToken() || key;
