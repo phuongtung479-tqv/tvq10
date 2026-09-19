@@ -319,3 +319,35 @@ Chạy E2E cloud sau khi đã tạo user test:
 ```bash
 E2E_ADMIN_EMAIL=admin@example.com E2E_ADMIN_PASSWORD='mat-khau-test' npm exec playwright test tests/e2e/admin-pages.spec.ts
 ```
+
+## H. Google Sheets webhook không qua Make
+
+Dùng file `scripts/google-sheets-webhook.gs` để thay Make khi Make hết quota.
+
+1. Tạo một Google Sheet mới.
+2. Mở **Extensions → Apps Script**.
+3. Xóa code mẫu và dán toàn bộ nội dung `scripts/google-sheets-webhook.gs`.
+4. Bấm **Deploy → New deployment → Web app**.
+5. Chọn **Execute as: Me** và **Who has access: Anyone**.
+6. Deploy, cấp quyền Google lần đầu và sao chép URL kết thúc bằng `/exec`.
+7. Trong Admin → **Form & Webhook**, thêm endpoint:
+    - Type: `Google Sheets`
+    - URL: URL `/exec`
+    - Enabled: bật
+8. Bấm **Lưu ngay**, rồi bấm **Test webhook chính** hoặc test endpoint Sheets.
+
+Khi submit form, Apps Script ghi một dòng vào tab `Leads`. Script lưu cả các trường
+UTM, AI, hành vi và `raw_payload`. `idempotency_key`/`webhook_delivery_id` được
+dùng để bỏ qua request trùng.
+
+Test thủ công không dùng dữ liệu khách thật:
+
+```bash
+curl -i -X POST 'URL_APPS_SCRIPT_EXEC' \
+   -H 'Content-Type: application/json' \
+   -H 'X-Idempotency-Key: sheets-test-1' \
+   --data '{"event":"sheets_test","webhook_delivery_id":"sheets-test-1","idempotency_key":"sheets-test-1","full_name":"Test webhook","phone":"0900000000","source":"manual_test"}'
+```
+
+Kết quả đúng là JSON có `"ok":true` và một dòng mới trong tab `Leads`. Gửi lại
+cùng `idempotency_key` phải trả `"duplicate":true` và không tạo thêm dòng.
