@@ -1739,7 +1739,7 @@ const SALE_ADVICE_PRESET_GROUPS = [
           "⏱️ {timeOnPage} · {firstInteraction} · {scrollDepth}\n🎯 {focusSection}\n🧠 {details}",
         deviceTechInfo:
           "💻 {device}\n🧩 {os}\n🌐 {browser}\n📡 {network}\n📐 {screen}",
-        trafficAdsSource: "🎯 {source}\n��� {medium}\n🏷️ {campaign}\n🔍 {term}",
+        trafficAdsSource: "🎯 {source}\n���� {medium}\n🏷️ {campaign}\n🔍 {term}",
       },
     ],
   },
@@ -4931,6 +4931,8 @@ function LandingEditorModal({ onClose }: ModalProps) {
   const graduationInputRef = useRef<HTMLInputElement>(null);
   const expertInputRef = useRef<HTMLInputElement>(null);
   const [logoError, setLogoError] = useState("");
+  const [footerLogoError, setFooterLogoError] = useState("");
+  const footerLogoInputRef = useRef<HTMLInputElement>(null);
   const [heroMediaError, setHeroMediaError] = useState("");
   const [graduationError, setGraduationError] = useState("");
   const [templateType, setTemplateType] = useState("promo");
