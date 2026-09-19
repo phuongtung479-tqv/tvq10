@@ -263,6 +263,11 @@ export async function loadCloudConfig(
       mergeConfig(config, data as Partial<SiteConfig>),
       config,
     );
+    // An older cloud row may contain an empty webhook field and would
+    // otherwise erase the working local/default endpoint during hydration.
+    if (!hydrated.form.webhookUrl.trim() && config.form.webhookUrl.trim()) {
+      hydrated.form.webhookUrl = config.form.webhookUrl;
+    }
     return hydrated;
   } catch {
     return null;
