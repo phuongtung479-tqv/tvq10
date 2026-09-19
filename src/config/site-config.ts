@@ -44,6 +44,7 @@ export interface WebhookEndpoint {
   url: string;
   enabled: boolean;
   type: "make" | "telegram" | "sheets" | "supabase" | "custom";
+  fields?: string[];
 }
 
 export interface TrackingConfig {

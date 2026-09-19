@@ -16,6 +16,55 @@ export interface WebhookResult {
 const TIMEOUT_MS = 4_000;
 const MAX_PAYLOAD_BYTES = 60_000;
 
+export const WEBHOOK_FIELD_OPTIONS = [
+  ["event", "Loại sự kiện"],
+  ["webhook_delivery_id", "Mã giao webhook"],
+  ["idempotency_key", "Mã chống trùng"],
+  ["created_at", "Thời điểm submit"],
+  ["full_name", "Họ tên"],
+  ["phone", "Số điện thoại"],
+  ["email", "Email"],
+  ["city", "Tỉnh/thành"],
+  ["major", "Ngành quan tâm"],
+  ["source", "Nguồn chính"],
+  ["landing_url", "URL landing"],
+  ["ab_variant", "Biến thể A/B"],
+  ["ai_score", "AI score"],
+  ["ai_rank", "AI rank"],
+  ["risk_level", "Mức rủi ro"],
+  ["risk_reasons", "Lý do rủi ro"],
+  ["recommended_action", "Hành động đề xuất"],
+  ["sale_advice", "Lời khuyên sale"],
+  ["behavior_summary", "Tóm tắt hành vi"],
+  ["device_tech_info", "Thông tin thiết bị"],
+  ["traffic_ads_source", "Nguồn quảng cáo"],
+  ["visits_today", "Lượt hôm nay"],
+  ["visits_month", "Lượt tháng"],
+  ["current_session", "Phiên hiện tại"],
+  ["device_manufacturer", "Hãng thiết bị"],
+  ["device_family", "Dòng thiết bị"],
+  ["device_model_name", "Model thiết bị"],
+  ["operating_system", "Hệ điều hành"],
+  ["browser", "Trình duyệt"],
+  ["network_provider", "Nhà mạng"],
+  ["network_label", "Loại mạng"],
+  ["utm_source", "UTM source"],
+  ["utm_medium", "UTM medium"],
+  ["utm_campaign", "UTM campaign"],
+  ["utm_content", "UTM content"],
+  ["utm_term", "UTM term"],
+  ["ttclid", "TikTok click ID"],
+  ["fbclid", "Facebook click ID"],
+  ["gclid", "Google click ID"],
+  ["referrer", "Referrer"],
+  ["attribution_model", "Attribution model"],
+  ["attribution_detected_by", "Cách nhận diện attribution"],
+  ["raw_query", "Query URL gốc"],
+  ["utm_params", "UTM bổ sung"],
+] as const;
+
+export const DEFAULT_SHEETS_FIELDS = WEBHOOK_FIELD_OPTIONS.map(([key]) => key);
+
 function validUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -96,7 +145,14 @@ async function postOne(
       headers["X-Idempotency-Key"] = idempotencyKey;
     }
 
-    if (ep.type === "telegram") {
+    if (ep.type === "sheets" && ep.fields?.length) {
+      body = {
+        ...Object.fromEntries(
+          Object.entries(payload).filter(([key]) => ep.fields?.includes(key)),
+        ),
+        sheet_fields: ep.fields,
+      };
+    } else if (ep.type === "telegram") {
       const t = telegramBody(ep.url, payload);
       endpoint = t.endpoint;
       body = t.body;

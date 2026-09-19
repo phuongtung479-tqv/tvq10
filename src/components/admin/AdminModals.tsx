@@ -40,6 +40,8 @@ import { fireTestEvent, type TestEventLog } from "@/lib/tracking";
 import {
   testWebhookEndpoint,
   webhookConfigurationWarning,
+  DEFAULT_SHEETS_FIELDS,
+  WEBHOOK_FIELD_OPTIONS,
   type WebhookResult,
 } from "@/services/webhooks";
 import { getVariant, resetVariant } from "@/lib/ab";
@@ -3383,6 +3385,53 @@ function WebhookModal({ onClose }: ModalProps) {
               label="Kích hoạt"
             />
           </div>
+          {w.type === "sheets" && (
+            <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2">
+              <p className="text-[11px] font-bold text-emerald-900">
+                Chọn cột gửi sang Google Sheets
+              </p>
+              <p className="mt-1 text-[10px] text-emerald-800">
+                Cột <code>received_at</code> và <code>raw_payload</code> luôn
+                được giữ để đối soát. Các cột dưới đây sẽ được lọc theo lựa
+                chọn.
+              </p>
+              <div className="mt-2 grid max-h-64 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
+                {WEBHOOK_FIELD_OPTIONS.map(([fieldKey, label]) => {
+                  const selected = (w.fields?.length
+                    ? w.fields
+                    : DEFAULT_SHEETS_FIELDS
+                  ).includes(fieldKey);
+                  return (
+                    <label
+                      key={fieldKey}
+                      className="flex items-start gap-2 rounded px-1 py-1 text-[10px] text-emerald-950 hover:bg-emerald-100"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={(event) =>
+                          update((draft) => {
+                            const endpoint = draft.webhooks[i]!;
+                            const current = endpoint.fields?.length
+                              ? [...endpoint.fields]
+                              : [...DEFAULT_SHEETS_FIELDS];
+                            endpoint.fields = event.target.checked
+                              ? Array.from(new Set([...current, fieldKey]))
+                              : current.filter((key) => key !== fieldKey);
+                          })
+                        }
+                      />
+                      <span>
+                        <b>{fieldKey}</b>
+                        <br />
+                        {label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <button
             type="button"
             disabled={!w.url.trim() || testingId === w.id}

@@ -10,6 +10,10 @@ Script, mỗi lead được ghi vào tab `Leads`; các object/array được ghi
   **Webhook URL (Make/Zapier)**, xóa URL Make cũ hoặc tắt endpoint Make.
 - Nếu dùng danh sách endpoint phụ: bấm **Thêm Webhook**, chọn **Google Sheets**,
   dán URL `/exec`, bật **Kích hoạt**, rồi bấm **Lưu ngay**.
+- Với endpoint Google Sheets, mở phần **Chọn cột gửi sang Google Sheets** và
+  tích/bỏ tích từng biến. Sau khi đổi lựa chọn phải bấm **Lưu ngay**.
+- Khi gửi, website chỉ gửi các biến đã tích. Script luôn thêm `received_at` và
+  `raw_payload` để đối soát request.
 - Không điền Google Sheets API key vào ô URL. Apps Script Web App dùng URL `/exec`
   và quyền `Who has access: Anyone`.
 
@@ -69,3 +73,8 @@ Giữ các cột cần dùng để lọc/báo cáo, ví dụ `created_at`, `full
 `city`, `major`, `source`, `utm_campaign`, `ai_score`, `risk_level` và
 `recommended_action`. Không xóa `idempotency_key` nếu vẫn muốn truy vết trùng.
 Có thể ẩn các cột kỹ thuật thay vì xóa; `raw_payload` nên giữ để dự phòng.
+
+Nếu đã đổi danh sách cột, hãy deploy lại Apps Script **New version** nếu bạn
+đang dùng bản script cũ, sau đó gửi một lead test. Khi danh sách cột thay đổi,
+script có thể chèn header mới ở đầu tab `Leads`; hãy giữ lại các dòng cũ để
+không mất lịch sử.

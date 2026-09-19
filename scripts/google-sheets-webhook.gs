@@ -49,6 +49,9 @@ function doPost(event) {
 
 function writePayload(payload) {
   const idempotencyKey = String(payload.idempotency_key || payload.webhook_delivery_id || "").trim();
+  const selectedFields = Array.isArray(payload.sheet_fields)
+    ? payload.sheet_fields.map(String).filter(Boolean)
+    : null;
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -60,7 +63,7 @@ function writePayload(payload) {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     if (!spreadsheet) throw new Error("Script chưa được gắn với Google Sheet");
     const sheet = spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
-    const headers = [
+    const allHeaders = [
       "received_at", "event", "webhook_delivery_id", "idempotency_key",
       "created_at", "full_name", "phone", "email", "city", "major", "source",
       "landing_url", "ab_variant", "ai_score", "ai_rank", "risk_level",
@@ -72,6 +75,11 @@ function writePayload(payload) {
       "ttclid", "fbclid", "gclid", "referrer", "attribution_model",
       "attribution_detected_by", "raw_query", "utm_params", "raw_payload"
     ];
+    const headers = selectedFields
+      ? ["received_at"].concat(selectedFields.filter(function(header) {
+          return allHeaders.indexOf(header) >= 0 && header !== "received_at" && header !== "raw_payload";
+        })).concat(["raw_payload"])
+      : allHeaders;
     ensureHeaders(sheet, headers);
     sheet.appendRow(headers.map(function(header) {
       if (header === "received_at") return new Date();
