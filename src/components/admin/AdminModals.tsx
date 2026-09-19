@@ -4017,7 +4017,7 @@ function StorageModal({ onClose }: ModalProps) {
           onClick={() => exportConfigFile(config)}
           className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-bold text-neutral-700"
         >
-          Xuất config local
+          Xuất config cho mã nguồn
         </button>
         <button
           type="button"
@@ -4027,6 +4027,13 @@ function StorageModal({ onClose }: ModalProps) {
           Xuất SQL Supabase
         </button>
       </div>
+      <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-900">
+        Lưu cấu hình sẽ đồng bộ runtime lên Supabase. File
+        <code className="mx-1">src/config/site-config.ts</code> không thể tự
+        bị ghi từ website production. Muốn đưa cấu hình thành mặc định trong mã
+        nguồn, hãy xuất config, thay phần <code>DEFAULT_CONFIG</code> rồi commit
+        và redeploy.
+      </p>
       <input
         ref={importRef}
         type="file"
