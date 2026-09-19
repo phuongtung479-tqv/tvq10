@@ -174,6 +174,33 @@ async function postOne(
         detail: "URL không hợp lệ hoặc không dùng HTTPS",
       };
 
+    if (ep.type === "sheets") {
+      try {
+        // Apps Script Web Apps may redirect and omit CORS headers. A simple
+        // text/plain POST avoids preflight and lets the Web App parse JSON.
+        await fetch(endpoint, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(body),
+          keepalive: true,
+        });
+        return {
+          label: ep.label || ep.type,
+          ok: true,
+          attempts: 1,
+          detail: "browser_direct_sent",
+        };
+      } catch (error) {
+        return {
+          label: ep.label || ep.type,
+          ok: false,
+          attempts: 1,
+          detail: error instanceof Error ? error.message : "Direct Sheets request failed",
+        };
+      }
+    }
+
     // Always use the server relay. A client fallback after a relay timeout can
     // duplicate a request that already reached the endpoint.
     try {

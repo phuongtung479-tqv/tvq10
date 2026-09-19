@@ -3242,8 +3242,8 @@ function WebhookModal({ onClose }: ModalProps) {
           endpoint lỗi không làm mất lead trong Mini-CRM.
         </p>
         <p className="mt-1">
-          Hãy bấm test sau khi nhập URL. Website dùng server relay để gửi POST,
-          vì vậy Google Apps Script Web App không cần bật CORS riêng.
+          Hãy bấm test sau khi nhập URL. Google Sheets được gửi trực tiếp từ
+          trình duyệt bằng POST đơn giản, không cần relay, CORS hay API key.
         </p>
       </div>
       <div className="mb-4 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/20">
@@ -3461,7 +3461,7 @@ function WebhookModal({ onClose }: ModalProps) {
             {w.type === "supabase" &&
               "Supabase: dùng tên bảng trong URL, ví dụ leads."}
             {w.type === "sheets" &&
-              "Google Apps Script: dùng URL /exec; server relay của website sẽ gửi POST JSON."}
+              "Google Apps Script: dùng URL /exec; website gửi POST trực tiếp, không cần relay/CORS/API key."}
             {(w.type === "make" || w.type === "custom") &&
               "Endpoint phải nhận POST JSON qua HTTPS."}
           </p>
