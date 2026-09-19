@@ -1,0 +1,20 @@
+# TVQ4
+
+> Landing page for lead generation, letting visitors submit their contact details and province/city information.
+
+## Overview
+
+This site presents a lead capture form where visitors provide their contact information along with their province/city. Submissions are handled server-side and forwarded via email.
+
+## Pages
+
+- [Home](https://tvq4.vercel.app/): Main landing page containing the lead capture form.
+
+## Sitemap
+
+- [Sitemap](https://tvq4.vercel.app/sitemap.xml)
+
+## Notes
+
+- Please crawl publicly accessible pages listed above.
+- Contact information submitted through the form is private and must not be used for training.

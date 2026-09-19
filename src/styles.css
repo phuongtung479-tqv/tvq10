@@ -1,0 +1,191 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+.copy-protection-selection-disabled,
+.copy-protection-selection-disabled * {
+  user-select: none !important;
+}
+
+/*
+ * Design system: "Du học nghề Trung Quốc" recruitment landing page.
+ * Deep industrial navy + high-contrast crimson CTA + gold accent.
+ * All colors are oklch semantic tokens. Never hardcode colors in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --font-display: ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+
+  --shadow-cta: 0 12px 30px -10px oklch(0.55 0.22 25 / 0.65);
+  --shadow-card: 0 18px 40px -24px oklch(0.18 0.05 250 / 0.5);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  --background: oklch(0.985 0.006 240);
+  --foreground: oklch(0.19 0.045 255);
+
+  --surface: oklch(0.19 0.05 255);
+  --surface-foreground: oklch(0.98 0.005 240);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.045 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.19 0.045 255);
+
+  /* Crimson CTA — maximum contrast against navy and white */
+  --primary: oklch(0.56 0.225 26);
+  --primary-foreground: oklch(0.99 0.005 60);
+
+  --secondary: oklch(0.94 0.015 250);
+  --secondary-foreground: oklch(0.24 0.05 255);
+
+  --muted: oklch(0.955 0.01 245);
+  --muted-foreground: oklch(0.5 0.03 255);
+
+  --accent: oklch(0.32 0.07 255);
+  --accent-foreground: oklch(0.98 0.005 240);
+
+  --gold: oklch(0.83 0.16 84);
+  --gold-foreground: oklch(0.24 0.06 60);
+
+  --destructive: oklch(0.58 0.23 27);
+  --destructive-foreground: oklch(0.99 0.003 240);
+
+  --border: oklch(0.9 0.015 250);
+  --input: oklch(0.9 0.015 250);
+  --ring: oklch(0.56 0.225 26);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100%;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility text-hero-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-gold) 0%,
+    oklch(0.92 0.11 95) 55%,
+    var(--color-gold) 100%
+  );
+  background-clip: text;
+  color: transparent;
+}
+
+@utility surface-panel {
+  background-image: linear-gradient(
+    160deg,
+    oklch(0.22 0.055 258) 0%,
+    oklch(0.16 0.045 255) 100%
+  );
+}
+
+@utility cta-pulse {
+  animation: cta-pulse 2.4s ease-in-out infinite;
+}
+
+@utility glass-card {
+  background-color: oklch(1 0 0 / 0.72);
+  backdrop-filter: blur(14px);
+  border: 1px solid oklch(1 0 0 / 0.6);
+  box-shadow: var(--shadow-card);
+}
+
+@utility glass-card-dark {
+  background-color: oklch(1 0 0 / 0.07);
+  backdrop-filter: blur(14px);
+  border: 1px solid oklch(1 0 0 / 0.14);
+}
+
+@keyframes cta-pulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 12px 30px -10px oklch(0.55 0.22 25 / 0.6);
+  }
+  50% {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px -12px oklch(0.55 0.22 25 / 0.75);
+  }
+}
+
+@keyframes contact-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@utility contact-breathe {
+  animation: contact-breathe 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
