@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://tvq4.vercel.app/sitemap.xml
+Sitemap: https://tvq10.vercel.app/sitemap.xml

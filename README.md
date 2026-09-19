@@ -63,9 +63,8 @@ public/         File tĩnh công khai
 
 ## Supabase
 
-Với project mới, chạy file tổng hợp `supabase/supabase-funnel-2026-09-17.sql` hoặc chạy
-các script trong `supabase/` theo thứ tự được ghi trong
-[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md). Tài khoản admin phải tồn tại trong Supabase
+Với project mới, chạy các script trong `supabase/` theo thứ tự được ghi trong
+[supabase/README.md](supabase/README.md). Tài khoản admin phải tồn tại trong Supabase
 Auth và được bật trong bảng `public.admin_users`. Không đưa
 `SUPABASE_SERVICE_ROLE_KEY` vào biến `VITE_*` hoặc mã frontend.
 

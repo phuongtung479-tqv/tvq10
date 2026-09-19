@@ -128,7 +128,7 @@ Không dùng `SUPABASE_SERVICE_ROLE_KEY` làm `VITE_SUPABASE_ANON_KEY`.
 Dùng để cấu hình, lead và analytics đồng bộ nhiều thiết bị. Database Mode không ghi dữ liệu nghiệp vụ vào localStorage.
 
 1. Tạo project tại [supabase.com](https://supabase.com).
-2. Trong SQL Editor, chạy lần lượt `supabase/funnel_configs.sql`, `supabase/leads.sql`, `supabase/visitor_tracking.sql`, rồi `supabase/admin_users.sql`. Với project đã chạy schema cũ, chạy thêm `supabase/admin_rls_patch.sql` để sửa policy analytics mà không xóa dữ liệu. Hoặc chạy file tổng hợp `supabase/supabase-funnel-2026-09-17.sql` một lần trên project mới.
+2. Trong SQL Editor, chạy lần lượt `supabase/admin_users.sql`, `supabase/funnel_configs.sql`, `supabase/leads.sql`, `supabase/visitor_tracking.sql`, rồi `supabase/admin_rls_patch.sql`. Với project đã chạy schema cũ, chạy lại `supabase/admin_rls_patch.sql` để sửa policy analytics mà không xóa dữ liệu. Không chạy các dump SQL cũ.
 3. Vào **Authentication → Users → Add user**, tạo tài khoản email/mật khẩu quản trị. Nếu bật **Confirm email**, phải xác nhận email trước lần đăng nhập đầu tiên.
 4. Nếu user cũ vẫn báo `email_not_confirmed` dù đã tắt Confirm email, chạy câu SQL sau. `confirmed_at` là cột generated nên không được cập nhật trực tiếp:
 
