@@ -268,6 +268,11 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
       const source = trackedSource;
 
       const payload = {
+        event: "lead_created",
+        webhook_delivery_id:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `delivery_${Date.now()}_${phone}`,
         idempotency_key:
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? crypto.randomUUID()
