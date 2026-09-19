@@ -1739,7 +1739,7 @@ const SALE_ADVICE_PRESET_GROUPS = [
           "⏱️ {timeOnPage} · {firstInteraction} · {scrollDepth}\n🎯 {focusSection}\n🧠 {details}",
         deviceTechInfo:
           "💻 {device}\n🧩 {os}\n🌐 {browser}\n📡 {network}\n📐 {screen}",
-        trafficAdsSource: "🎯 {source}\n📣 {medium}\n🏷️ {campaign}\n🔍 {term}",
+        trafficAdsSource: "🎯 {source}\n��� {medium}\n🏷️ {campaign}\n🔍 {term}",
       },
     ],
   },
@@ -3403,10 +3403,11 @@ function WebhookModal({ onClose }: ModalProps) {
                   const selected = orderedFields.includes(fieldKey);
                   const fieldIndex = orderedFields.indexOf(fieldKey);
                   return (
-                    <label
+                    <div
                       key={fieldKey}
-                      className="flex items-start gap-1 rounded px-1 py-1 text-[10px] text-emerald-950 hover:bg-emerald-100"
+                      className="rounded px-1 py-1 hover:bg-emerald-100"
                     >
+                    <label className="flex items-start gap-1 text-[10px] text-emerald-950">
                       <input
                         type="checkbox"
                         checked={selected}
@@ -3480,6 +3481,25 @@ function WebhookModal({ onClose }: ModalProps) {
                         </span>
                       )}
                     </label>
+                    {selected && (
+                      <input
+                        type="text"
+                        value={w.columnMap?.[fieldKey] ?? ""}
+                        placeholder={`Tên cột trong Sheet (mặc định: ${fieldKey})`}
+                        onChange={(event) =>
+                          update((draft) => {
+                            const endpoint = draft.webhooks[i]!;
+                            const map = { ...(endpoint.columnMap || {}) };
+                            const value = event.target.value;
+                            if (value.trim()) map[fieldKey] = value;
+                            else delete map[fieldKey];
+                            endpoint.columnMap = map;
+                          })
+                        }
+                        className="mt-1 w-full rounded border border-emerald-300 bg-white px-2 py-1 text-[10px] text-emerald-950 outline-none focus:border-emerald-500"
+                      />
+                    )}
+                    </div>
                   );
                 })}
               </div>
@@ -6466,7 +6486,7 @@ function LandingEditorModal({ onClose }: ModalProps) {
                       aria-label="Xóa ảnh"
                       className="absolute right-0.5 top-0.5 rounded-full bg-black/70 px-1 py-0.5 text-[9px] font-bold text-white opacity-0 transition group-hover:opacity-100"
                     >
-                      ✕
+                      ���
                     </button>
                   </div>
                 ))}

@@ -642,28 +642,33 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
         const failedEmail = emailResults.find((result) => !result.sent);
         if (failedEmail) {
           emailDeliveryFailed = true;
-          console.warn("Automated email failed:", failedEmail);
-          toast.warning("Lead đã lưu, nhưng email chưa gửi được.", {
-            description:
-              failedEmail.detail ||
-              `Kiểm tra cấu hình Resend (${failedEmail.reason || "provider_error"}).`,
+          // Chỉ log cho Admin (xem trong console / server logs). KHÔNG chặn luồng
+          // submit và KHÔNG hiện chi tiết cấu hình email cho khách hàng: lead đã
+          // được lưu và webhook đã gửi, nên với khách đây vẫn là submit thành công.
+          console.warn(
+            `[v0] Auto-email failed (reason=${failedEmail.reason || "provider_error"}):`,
+            failedEmail.detail || failedEmail,
+          );
+          // Cảnh báo cho Admin qua webhook để dễ giám sát mà không làm phiền khách.
+          void dispatchLead(config, {
+            ...payload,
+            event: "auto_email_failed",
+            email_failure_reason: failedEmail.reason || "provider_error",
+            email_failure_detail: failedEmail.detail || "",
           });
         }
       }
       } catch (emailErr) {
         emailDeliveryFailed = true;
-        console.warn("Automated email step crashed, submit still succeeds:", emailErr);
-        toast.warning("Lead đã lưu, nhưng email chưa gửi được.", {
-          description: "Kiểm tra cấu hình email tự động trong Admin.",
-        });
+        console.warn(
+          "[v0] Auto-email step crashed, submit still succeeds:",
+          emailErr,
+        );
       }
 
-      if (emailDeliveryFailed) {
-        submittingRef.current = false;
-        setError("Lead đã lưu và webhook đã gửi, nhưng email chưa gửi được. Kiểm tra cấu hình email rồi thử lại email test.");
-        setStatus("error");
-        return;
-      }
+      // Lỗi email KHÔNG được biến submit của khách thành lỗi: lead đã lưu +
+      // webhook đã gửi. emailDeliveryFailed chỉ dùng để log/giám sát.
+      void emailDeliveryFailed;
 
       if (webhookDeliveryFailed) {
         setError(
@@ -797,7 +802,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
           className="absolute left-[-9999px] h-0 w-0 opacity-0"
         />
         {/* Hub UTM Catch-All: nhét TOÀN BỘ tham số thu gom được vào các
-            <input type="hidden"> để nếu form submit theo kiểu HTML POST truyền
+            <input type="hidden"> để nếu form submit theo kiểu HTML POST truy��n
             thống (kể cả khi bị in-app browser chặn JS), backend vẫn nhận đủ
             100% "vết tích" của đường link. */}
         <UtmHiddenFields model="last" />

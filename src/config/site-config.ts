@@ -45,6 +45,12 @@ export interface WebhookEndpoint {
   enabled: boolean;
   type: "make" | "telegram" | "sheets" | "supabase" | "custom";
   fields?: string[];
+  /**
+   * Ánh xạ biến payload -> tên cột trong Google Sheet.
+   * Ví dụ: { full_name: "Họ và tên", phone: "Số điện thoại" }.
+   * Bỏ trống một biến -> dùng chính tên biến làm tiêu đề cột.
+   */
+  columnMap?: Record<string, string>;
 }
 
 export interface TrackingConfig {
@@ -554,7 +560,7 @@ export const DEFAULT_CONFIG: SiteConfig = {
       {
         stat: "80%",
         title: "80% thực hành",
-        text: "Chỉ 20% lý thuyết. Bạn làm việc trực tiếp trên dây chuyền, máy móc và công nghệ mới nhất.",
+        text: "Chỉ 20% lý thuyết. Bạn làm việc trực tiếp trên dây chuyền, máy móc và công nghệ mới nh��t.",
       },
       {
         stat: "15-30tr",

@@ -145,12 +145,22 @@ async function postOne(
       headers["X-Idempotency-Key"] = idempotencyKey;
     }
 
-    if (ep.type === "sheets" && ep.fields?.length) {
+    if (ep.type === "sheets") {
+      const hasFields = Boolean(ep.fields?.length);
+      const hasColumnMap = Boolean(
+        ep.columnMap && Object.keys(ep.columnMap).length,
+      );
+      const filtered = hasFields
+        ? Object.fromEntries(
+            Object.entries(payload).filter(([key]) =>
+              ep.fields?.includes(key),
+            ),
+          )
+        : payload;
       body = {
-        ...Object.fromEntries(
-          Object.entries(payload).filter(([key]) => ep.fields?.includes(key)),
-        ),
-        sheet_fields: ep.fields,
+        ...filtered,
+        ...(hasFields ? { sheet_fields: ep.fields } : {}),
+        ...(hasColumnMap ? { sheet_columns: ep.columnMap } : {}),
       };
     } else if (ep.type === "telegram") {
       const t = telegramBody(ep.url, payload);
