@@ -65,6 +65,10 @@ function writePayload(payload) {
   const selectedFields = Array.isArray(payload.sheet_fields)
     ? payload.sheet_fields.map(String).filter(Boolean)
     : null;
+  // Ánh xạ biến payload -> tên cột trong Sheet. Website gửi kèm "sheet_columns".
+  const columnMap = (payload.sheet_columns && typeof payload.sheet_columns === "object" && !Array.isArray(payload.sheet_columns))
+    ? payload.sheet_columns
+    : {};
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -88,16 +92,22 @@ function writePayload(payload) {
       "ttclid", "fbclid", "gclid", "referrer", "attribution_model",
       "attribution_detected_by", "raw_query", "utm_params", "raw_payload"
     ];
-    const headers = selectedFields
-      ? ["received_at"].concat(selectedFields.filter(function(header) {
-          return allHeaders.indexOf(header) >= 0 && header !== "received_at" && header !== "raw_payload";
+    // sourceFields: khóa payload dùng để lấy giá trị (giữ thứ tự Admin chọn).
+    const sourceFields = selectedFields
+      ? ["received_at"].concat(selectedFields.filter(function(field) {
+          return allHeaders.indexOf(field) >= 0 && field !== "received_at" && field !== "raw_payload";
         })).concat(["raw_payload"])
       : allHeaders;
+    // headers: tiêu đề cột hiển thị trong Sheet (theo columnMap nếu có).
+    const headers = sourceFields.map(function(field) {
+      var mapped = columnMap[field];
+      return (typeof mapped === "string" && mapped.trim()) ? mapped.trim() : field;
+    });
     ensureHeaders(sheet, headers);
-    sheet.appendRow(headers.map(function(header) {
-      if (header === "received_at") return new Date();
-      if (header === "raw_payload") return JSON.stringify(payload);
-      return valueForSheet(payload[header]);
+    sheet.appendRow(sourceFields.map(function(field) {
+      if (field === "received_at") return new Date();
+      if (field === "raw_payload") return JSON.stringify(payload);
+      return valueForSheet(payload[field]);
     }));
     if (idempotencyKey) {
       properties.setProperty(DEDUPE_PREFIX + idempotencyKey, new Date().toISOString());
