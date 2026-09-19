@@ -3205,6 +3205,7 @@ function WebhookModal({ onClose }: ModalProps) {
   const enabledCount = list.filter(
     (endpoint) => endpoint.enabled && endpoint.url.trim(),
   ).length;
+  const sheetsEndpoint = list.find((endpoint) => endpoint.type === "sheets");
   const storageStatus = getStorageStatus(config);
 
   return (
@@ -3239,9 +3240,69 @@ function WebhookModal({ onClose }: ModalProps) {
           endpoint lỗi không làm mất lead trong Mini-CRM.
         </p>
         <p className="mt-1">
-          Hãy bấm test sau khi nhập URL. Trình duyệt có thể chặn endpoint không
-          bật CORS; khi đó nên dùng Make/Zapier làm cổng trung gian.
+          Hãy bấm test sau khi nhập URL. Website dùng server relay để gửi POST,
+          vì vậy Google Apps Script Web App không cần bật CORS riêng.
         </p>
+      </div>
+      <div className="mb-4 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/20">
+        <p className="text-xs font-black text-emerald-900 dark:text-emerald-200">
+          Google Sheets nhận lead trực tiếp
+        </p>
+        <p className="mt-1 text-[11px] leading-relaxed text-emerald-800 dark:text-emerald-300">
+          Dán Web App URL kết thúc bằng <code>/exec</code>. Không cần API key.
+          Script phải được deploy với <b>Execute as: Me</b> và
+          <b> Who has access: Anyone</b>.
+        </p>
+        {!sheetsEndpoint ? (
+          <button
+            type="button"
+            onClick={() =>
+              update((draft) =>
+                draft.webhooks.push({
+                  id: `sheets_${Date.now()}`,
+                  label: "Google Sheets Leads",
+                  url: "",
+                  enabled: true,
+                  type: "sheets",
+                }),
+              )
+            }
+            className="mt-3 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white"
+          >
+            Thêm cấu hình Google Sheets
+          </button>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <TextInput
+              value={sheetsEndpoint.url}
+              placeholder="https://script.google.com/macros/s/.../exec"
+              onChange={(event) =>
+                update((draft) => {
+                  const endpoint = draft.webhooks.find(
+                    (item) => item.id === sheetsEndpoint.id,
+                  );
+                  if (endpoint) endpoint.url = event.target.value;
+                })
+              }
+            />
+            <Toggle
+              checked={sheetsEndpoint.enabled}
+              onChange={(value) =>
+                update((draft) => {
+                  const endpoint = draft.webhooks.find(
+                    (item) => item.id === sheetsEndpoint.id,
+                  );
+                  if (endpoint) endpoint.enabled = value;
+                })
+              }
+              label="Bật nhận dữ liệu Google Sheets"
+            />
+            <p className="text-[10px] text-emerald-800 dark:text-emerald-300">
+              Sau khi dán URL: bấm <b>Lưu ngay</b>, rồi bấm test ở endpoint
+              Google Sheets bên dưới. Tắt Make cũ nếu Make hết quota.
+            </p>
+          </div>
+        )}
       </div>
       <div className="mb-3 rounded-xl border border-neutral-200 p-3 dark:border-white/10">
         <p className="mb-1 text-xs font-bold text-neutral-800">
@@ -3350,10 +3411,10 @@ function WebhookModal({ onClose }: ModalProps) {
             {w.type === "telegram" && "Telegram: dùng URL Bot API kèm chat_id."}
             {w.type === "supabase" &&
               "Supabase: dùng tên bảng trong URL, ví dụ leads."}
-            {(w.type === "make" ||
-              w.type === "sheets" ||
-              w.type === "custom") &&
-              "Endpoint phải nhận POST JSON và cho phép CORS từ landing page."}
+            {w.type === "sheets" &&
+              "Google Apps Script: dùng URL /exec; server relay của website sẽ gửi POST JSON."}
+            {(w.type === "make" || w.type === "custom") &&
+              "Endpoint phải nhận POST JSON qua HTTPS."}
           </p>
         </div>
       ))}
