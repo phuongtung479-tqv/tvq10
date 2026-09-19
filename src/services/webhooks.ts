@@ -243,7 +243,20 @@ export async function dispatchLead(
       ) === index,
   );
 
-  if (uniqueEndpoints.length === 0) return { ok: true, results: [] };
+  if (uniqueEndpoints.length === 0) {
+    return {
+      ok: false,
+      results: [
+        {
+          label: "Webhook chính",
+          ok: false,
+          attempts: 0,
+          detail: "Chưa cấu hình URL webhook trong Form & Webhook",
+        },
+      ],
+      failedCount: 1,
+    };
+  }
 
   const supabase = {
     url: config.admin.supabaseUrl,
