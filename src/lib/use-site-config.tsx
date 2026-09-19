@@ -45,24 +45,41 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const [dirty, setDirty] = useState(false);
   const [ready, setReady] = useState(false);
   const configRef = useRef(DEFAULT_CONFIG);
+  const dirtyRef = useRef(false);
+  const configVersionRef = useRef(0);
   const handledCountdownLeads = useRef(new Set<string>());
 
   useEffect(() => {
     configRef.current = config;
   }, [config]);
 
+  useEffect(() => {
+    dirtyRef.current = dirty;
+  }, [dirty]);
+
   // Hydrate từ storage sau khi mount (tránh mismatch SSR).
   useEffect(() => {
     const localConfig = loadConfig();
     setConfig(localConfig);
+    configRef.current = localConfig;
+    const loadVersion = configVersionRef.current;
     void loadCloudConfig(localConfig)
       .then((cloudConfig) => {
-        if (cloudConfig) setConfig(cloudConfig);
+        if (
+          cloudConfig &&
+          !dirtyRef.current &&
+          configVersionRef.current === loadVersion
+        ) {
+          configRef.current = cloudConfig;
+          setConfig(cloudConfig);
+        }
       })
       .finally(() => setReady(true));
   }, []);
 
   const update = useCallback((patch: (draft: SiteConfig) => void) => {
+    configVersionRef.current += 1;
+    dirtyRef.current = true;
     setConfig((prev) => {
       const draft = structuredClone(prev);
       patch(draft);
@@ -73,7 +90,10 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
 
   const save = useCallback(async () => {
     const saved = await saveConfig(config);
-    if (saved) setDirty(false);
+    if (saved) {
+      dirtyRef.current = false;
+      setDirty(false);
+    }
     return saved;
   }, [config]);
 
@@ -110,11 +130,15 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reset = useCallback(() => {
+    configVersionRef.current += 1;
+    dirtyRef.current = false;
     setConfig(resetConfig());
     setDirty(false);
   }, []);
 
   const resetLanding = useCallback(() => {
+    configVersionRef.current += 1;
+    dirtyRef.current = true;
     setConfig((current) => ({
       ...current,
       landing: structuredClone(DEFAULT_CONFIG.landing),
@@ -132,9 +156,15 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const importConfig = useCallback((raw: string) => {
     const parsed = parseImportedConfig(raw);
     if (!parsed) return false;
-    void saveConfig(parsed);
+    configVersionRef.current += 1;
+    dirtyRef.current = true;
     setConfig(parsed);
-    setDirty(false);
+    void saveConfig(parsed).then((saved) => {
+      if (saved) {
+        dirtyRef.current = false;
+        setDirty(false);
+      }
+    });
     return true;
   }, []);
 

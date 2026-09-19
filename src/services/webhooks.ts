@@ -14,7 +14,7 @@ export interface WebhookResult {
 }
 
 const TIMEOUT_MS = 4_000;
-const RETRIES = 1;
+const RETRIES = 0;
 const MAX_PAYLOAD_BYTES = 60_000;
 
 function validUrl(value: string): boolean {
@@ -128,6 +128,10 @@ async function postOne(
     let headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
+    const idempotencyKey = payload["idempotency_key"];
+    if (typeof idempotencyKey === "string" && idempotencyKey) {
+      headers["X-Idempotency-Key"] = idempotencyKey;
+    }
 
     if (ep.type === "telegram") {
       const t = telegramBody(ep.url, payload);
@@ -294,28 +298,7 @@ export async function dispatchLead(
     uniqueEndpoints.map((ep) => postOne(ep, payload, supabase)),
   );
 
-  // Fallback: nếu fetch thất bại, thử sendBeacon (hoạt động ngay cả khi
-  // in-app browser chặn fetch hoặc khi trang đang redirect)
   const failed = results.filter((r) => !r.ok);
-  if (
-    failed.length > 0 &&
-    typeof navigator !== "undefined" &&
-    navigator.sendBeacon
-  ) {
-    for (const ep of uniqueEndpoints) {
-      const result = results.find((r) => r.label === (ep.label || ep.type));
-      if (result?.ok) continue;
-      if (ep.type === "telegram" || ep.type === "supabase") continue; // sendBeacon chỉ cho POST JSON đơn giản
-      try {
-        const blob = new Blob([JSON.stringify(payload)], {
-          type: "application/json",
-        });
-        navigator.sendBeacon(ep.url, blob);
-      } catch {
-        /* ignore */
-      }
-    }
-  }
 
   return {
     // Partial delivery is useful for diagnostics, but must not be reported as

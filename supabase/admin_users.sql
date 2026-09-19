@@ -18,5 +18,5 @@ create policy "admins can read their own access"
 insert into public.admin_users (user_id, email, role, enabled)
 select id, email, 'owner', true
 from auth.users
-where lower(email) = lower('admin@example.com')
+where lower(email) = lower('phuongtung477.tn@gmail.com')
 on conflict (user_id) do update set email = excluded.email, role = 'owner', enabled = true;

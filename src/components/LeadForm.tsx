@@ -145,6 +145,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
   const [form, setForm] = useState(EMPTY);
   const startedRef = useRef(false);
   const honeypotRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
   const field = (name: string, fallback: string) =>
     config.form.fields.find((item) => item.name === name)?.placeholder ||
     fallback;
@@ -175,7 +176,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (status === "sending") return;
+    if (status === "sending" || submittingRef.current) return;
 
     // Anti-spam honeypot: bot điền trường ẩn -> giả vờ thành công, không gửi
     if (honeypotRef.current?.value) {
@@ -215,7 +216,9 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
       return;
     }
 
+    submittingRef.current = true;
     if (await isDuplicateLeadRemote(phone, config)) {
+      submittingRef.current = false;
       setError(
         "Số điện thoại này vừa được đăng ký. Tư vấn viên sẽ liên hệ với bạn sớm nhất.",
       );
@@ -226,6 +229,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
     if (
       rateLimited(config.form.rateLimitCount, config.form.rateLimitWindowMin)
     ) {
+      submittingRef.current = false;
       setError(
         "Bạn đã gửi nhiều lần trong thời gian ngắn. Vui lòng chờ vài phút rồi thử lại.",
       );
@@ -237,6 +241,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
     setStatus("sending");
 
     let leadSaved = false;
+    let leadDispatchStarted = false;
     try {
       const variant = getVariant(config.abTest.enabled, config.abTest.split);
       syncBehaviorSession({
@@ -263,6 +268,10 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
       const source = trackedSource;
 
       const payload = {
+        idempotency_key:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `lead_${Date.now()}_${phone}`,
         full_name: name.slice(0, 100),
         phone,
         email: email.slice(0, 255),
@@ -379,6 +388,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
         leadSaved = true;
         return saved;
       });
+      leadDispatchStarted = true;
       const [savedLead, delivery] = await Promise.all([
         savePromise,
         dispatchLead(config, payload),
@@ -482,7 +492,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
             ),
           );
           const accumulate = (entries: [string, number][]) => {
-            let total = entries.reduce((sum, [, weight]) => sum + Number(weight || 0), 0);
+            const total = entries.reduce((sum, [, weight]) => sum + Number(weight || 0), 0);
             if (!total) return entries[0]?.[0] || "";
             let pointer = Math.random() * total;
             for (const [email, weight] of entries) {
@@ -569,16 +579,6 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
               },
             }),
           );
-          if (config.emailAutomation.salesSendWebhook) {
-            void dispatchLead(config, {
-              ...payload,
-              event: "sale_assignment_email",
-              sales_email_to: selectedSaleRecipient,
-              notify_email_type: config.emailAutomation.salesDistributionMode,
-              notify_email_template: config.emailAutomation.notifySubject,
-              assigned_sale_timestamp: new Date().toISOString(),
-            });
-          }
         } else if (directNotify) {
           emailTasks.push(
             safeSendLeadEmail({
@@ -596,22 +596,13 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
               },
             }),
           );
-          if (config.emailAutomation.salesSendWebhook && directNotify) {
-            void dispatchLead(config, {
-              ...payload,
-              event: "sale_assignment_email",
-              sales_email_to: directNotify,
-              notify_email_type: config.emailAutomation.salesDistributionMode,
-              notify_email_template: config.emailAutomation.notifySubject,
-              assigned_sale_timestamp: new Date().toISOString(),
-            });
-          }
         }
 
-        if (saleRecipients.length > 0 && selectedSaleRecipient && config.emailAutomation.salesSendWebhook) {
+        if (selectedSaleRecipient && config.emailAutomation.salesSendWebhook) {
           void dispatchLead(config, {
             ...payload,
-            event: "sale_assignment_email_total",
+            event: "sale_assignment_email",
+            sales_email_to: selectedSaleRecipient,
             sales_email_recipients: saleRecipients,
             selected_sales_email: selectedSaleRecipient,
             sales_distribution_mode: config.emailAutomation.salesDistributionMode,
@@ -644,6 +635,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
         config.tracking.ga4Id,
       );
       setForm(EMPTY);
+      submittingRef.current = false;
       setStatus("done");
       toast.success("Đăng ký thành công!", {
         description: "Tư vấn viên sẽ liên hệ lại trong 5 phút.",
@@ -661,7 +653,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
       }
     } catch (err) {
       console.error("Lead submit failed:", err);
-      if (!leadSaved) {
+      if (!leadSaved && !leadDispatchStarted) {
         const fallbackPayload = {
           full_name: name.slice(0, 100),
           phone,
@@ -698,6 +690,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
       setError(
         "Có lỗi khi gửi thông tin. Vui lòng kiểm tra kết nối v�� thử gửi lại.",
       );
+      submittingRef.current = false;
       setStatus("error");
       toast.error("Gửi chưa thành công", {
         description: "Vui lòng thử lại sau vài giây.",
