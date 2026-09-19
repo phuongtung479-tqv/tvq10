@@ -81,7 +81,7 @@ export function ContentSection({ section }: { section: ContentSectionData }) {
       ) : (
         imageUrl && (
           <img
-            src={safeMediaUrl(section.content.imageUrl)}
+            src={safeMediaUrl(section.content?.imageUrl)}
             alt=""
             className="mb-6 max-h-[20rem] w-full max-w-full rounded-2xl object-cover sm:max-h-[28rem]"
             loading="lazy"
@@ -148,11 +148,7 @@ export function ContentSection({ section }: { section: ContentSectionData }) {
             (line) => (
               <li
                 key={line}
-                className={`rounded-lg border p-3 text-sm leading-relaxed ${
-                  variant === "offer"
-                    ? "border-white/20 bg-white/10 text-primary-foreground"
-                    : "border-border bg-card"
-                }`}
+                className="rounded-lg border border-border bg-card p-3 text-sm leading-relaxed"
               >
                 ✓ {line}
               </li>

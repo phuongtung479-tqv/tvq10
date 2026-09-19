@@ -1055,7 +1055,7 @@ export interface CloudAnalyticsResult {
 }
 
 function aggregateCloudAnalytics(
-  sessions: Array<{ source?: string | null }>,
+  sessions: Array<{ source?: string | null; variant?: string | null }>,
   leads: Array<{
     utm_source?: string | null;
     traffic_ads_source?: string | null;
@@ -1092,11 +1092,11 @@ function aggregateCloudAnalytics(
     };
     aggregate.bySourceStats[source].leads += 1;
     if (lead.variant) {
-      aggregate.byVariant[lead.variant] = aggregate.byVariant[lead.variant] || {
+      const bucket = (aggregate.byVariant[lead.variant] ||= {
         visits: 0,
         leads: 0,
-      };
-      aggregate.byVariant[lead.variant].leads += 1;
+      });
+      bucket.leads += 1;
     }
   }
   return aggregate;
@@ -1255,7 +1255,7 @@ export async function loadCloudAnalytics(
       "Content-Type": "application/json",
       apikey: supabaseAnonKey,
       Authorization: `Bearer ${accessToken}`,
-    };
+    } as Record<string, string>;
     let response = await fetch(`${base}/rest/v1/rpc/get_funnel_analytics`, {
       method: "POST",
       headers,

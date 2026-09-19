@@ -113,7 +113,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       supabaseUrl = "",
       supabaseAnonKey = "",
       supabaseAdminEmail = "",
-    ) => {
+    ): Promise<SupabaseSignInResult> => {
       const env = import.meta.env as Record<string, string | undefined>;
       const email =
         supabaseAdminEmail.trim() ||

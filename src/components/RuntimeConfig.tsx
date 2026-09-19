@@ -63,11 +63,11 @@ function injectInline(
     existing?.remove();
     return;
   }
-  if (existing?.dataset.configKey === configKey) return;
+  if (existing?.dataset["configKey"] === configKey) return;
   existing?.remove();
   const s = document.createElement("script");
   s.id = id;
-  s.dataset.configKey = configKey;
+  s.dataset["configKey"] = configKey;
   s.type = "text/javascript";
   s.text = code;
   (target === "head" ? document.head : document.body).appendChild(s);
@@ -79,11 +79,11 @@ function injectSrc(id: string, src: string, configKey = src) {
     existing?.remove();
     return;
   }
-  if (existing?.dataset.configKey === configKey) return;
+  if (existing?.dataset["configKey"] === configKey) return;
   existing?.remove();
   const s = document.createElement("script");
   s.id = id;
-  s.dataset.configKey = configKey;
+  s.dataset["configKey"] = configKey;
   s.async = true;
   s.src = src;
   document.head.appendChild(s);
@@ -100,11 +100,11 @@ function injectRaw(
     existing?.remove();
     return;
   }
-  if (existing?.dataset.configKey === configKey) return;
+  if (existing?.dataset["configKey"] === configKey) return;
   existing?.remove();
   const holder = document.createElement("div");
   holder.id = id;
-  holder.dataset.configKey = configKey;
+  holder.dataset["configKey"] = configKey;
   holder.style.display = "none";
   holder.innerHTML = html;
   // Script trong innerHTML không tự chạy — tạo lại để thực thi.
