@@ -397,14 +397,19 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
       leadDispatchStarted = true;
       const savedLead = await savePromise;
       const delivery = await dispatchLead(config, payload);
+      let webhookDeliveryFailed = false;
       if (!delivery.ok) {
+        webhookDeliveryFailed = true;
         const failed = delivery.results
           .filter((result) => !result.ok)
           .map((result) => `${result.label}: ${result.detail || "không rõ lỗi"}`)
           .join("; ");
-        throw new Error(
-          `Lead đã lưu nhưng webhook chưa nhận dữ liệu (${failed || "không có endpoint thành công"}).`,
+        console.warn(
+          `Lead saved, but webhook delivery was partial/failed: ${failed || "không có endpoint thành công"}`,
         );
+        toast.warning("Lead đã lưu, nhưng một webhook chưa nhận dữ liệu.", {
+          description: failed || "Kiểm tra cấu hình Form & Webhook.",
+        });
       }
       if (
         config.admin.storageMode === "database" &&
@@ -658,6 +663,12 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
         setError("Lead đã lưu và webhook đã gửi, nhưng email chưa gửi được. Kiểm tra cấu hình email rồi thử lại email test.");
         setStatus("error");
         return;
+      }
+
+      if (webhookDeliveryFailed) {
+        setError(
+          "Lead đã lưu và email đã xử lý, nhưng một webhook chưa nhận dữ liệu. Kiểm tra tab Leads và endpoint webhook.",
+        );
       }
 
       // Chỉ bắn tracking SAU khi dữ liệu đã gửi thành công
