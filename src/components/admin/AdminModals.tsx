@@ -3397,14 +3397,15 @@ function WebhookModal({ onClose }: ModalProps) {
               </p>
               <div className="mt-2 grid max-h-64 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
                 {WEBHOOK_FIELD_OPTIONS.map(([fieldKey, label]) => {
-                  const selected = (w.fields?.length
+                  const orderedFields = w.fields?.length
                     ? w.fields
-                    : DEFAULT_SHEETS_FIELDS
-                  ).includes(fieldKey);
+                    : DEFAULT_SHEETS_FIELDS;
+                  const selected = orderedFields.includes(fieldKey);
+                  const fieldIndex = orderedFields.indexOf(fieldKey);
                   return (
                     <label
                       key={fieldKey}
-                      className="flex items-start gap-2 rounded px-1 py-1 text-[10px] text-emerald-950 hover:bg-emerald-100"
+                      className="flex items-start gap-1 rounded px-1 py-1 text-[10px] text-emerald-950 hover:bg-emerald-100"
                     >
                       <input
                         type="checkbox"
@@ -3426,6 +3427,58 @@ function WebhookModal({ onClose }: ModalProps) {
                         <br />
                         {label}
                       </span>
+                      {selected && (
+                        <span className="ml-auto flex shrink-0 gap-0.5">
+                          <button
+                            type="button"
+                            title="Đưa cột lên"
+                            disabled={fieldIndex <= 0}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              update((draft) => {
+                                const endpoint = draft.webhooks[i]!;
+                                const fields = endpoint.fields?.length
+                                  ? [...endpoint.fields]
+                                  : [...DEFAULT_SHEETS_FIELDS];
+                                if (fieldIndex > 0) {
+                                  [fields[fieldIndex - 1], fields[fieldIndex]] = [
+                                    fields[fieldIndex]!,
+                                    fields[fieldIndex - 1]!,
+                                  ];
+                                }
+                                endpoint.fields = fields;
+                              });
+                            }}
+                            className="rounded border px-1 disabled:opacity-30"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            title="Đưa cột xuống"
+                            disabled={fieldIndex === orderedFields.length - 1}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              update((draft) => {
+                                const endpoint = draft.webhooks[i]!;
+                                const fields = endpoint.fields?.length
+                                  ? [...endpoint.fields]
+                                  : [...DEFAULT_SHEETS_FIELDS];
+                                if (fieldIndex < fields.length - 1) {
+                                  [fields[fieldIndex], fields[fieldIndex + 1]] = [
+                                    fields[fieldIndex + 1]!,
+                                    fields[fieldIndex]!,
+                                  ];
+                                }
+                                endpoint.fields = fields;
+                              });
+                            }}
+                            className="rounded border px-1 disabled:opacity-30"
+                          >
+                            ↓
+                          </button>
+                        </span>
+                      )}
                     </label>
                   );
                 })}
@@ -3452,7 +3505,9 @@ function WebhookModal({ onClose }: ModalProps) {
               className={`mt-1 text-[11px] font-semibold ${results[w.id]!.ok ? "text-emerald-600" : "text-red-600"}`}
             >
               {results[w.id]!.ok
-                ? `OK sau ${results[w.id]!.attempts} lần thử`
+                ? results[w.id]!.detail === "browser_direct_queued"
+                  ? "Đã xếp request trực tiếp; kiểm tra tab Leads để xác nhận dòng mới"
+                  : `OK sau ${results[w.id]!.attempts} lần thử`
                 : `Lỗi: ${results[w.id]!.detail}`}
             </p>
           )}

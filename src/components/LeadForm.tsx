@@ -242,6 +242,7 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
 
     let leadSaved = false;
     let leadDispatchStarted = false;
+    let emailDeliveryFailed = false;
     try {
       const variant = getVariant(config.abTest.enabled, config.abTest.split);
       syncBehaviorSession({
@@ -632,23 +633,31 @@ export function LeadForm({ id = "dang-ky" }: { id?: string }) {
           });
         }
 
-        void Promise.all(emailTasks).then((emailResults) => {
-          const failedEmail = emailResults.find((result) => !result.sent);
-          if (failedEmail) {
-            console.warn("Automated email failed:", failedEmail);
-            toast.warning("Lead đã lưu, nhưng email chưa gửi được.", {
-              description:
-                failedEmail.detail ||
-                `Kiểm tra cấu hình Resend (${failedEmail.reason || "provider_error"}).`,
-            });
-          }
-        });
+        const emailResults = await Promise.all(emailTasks);
+        const failedEmail = emailResults.find((result) => !result.sent);
+        if (failedEmail) {
+          emailDeliveryFailed = true;
+          console.warn("Automated email failed:", failedEmail);
+          toast.warning("Lead đã lưu, nhưng email chưa gửi được.", {
+            description:
+              failedEmail.detail ||
+              `Kiểm tra cấu hình Resend (${failedEmail.reason || "provider_error"}).`,
+          });
+        }
       }
       } catch (emailErr) {
+        emailDeliveryFailed = true;
         console.warn("Automated email step crashed, submit still succeeds:", emailErr);
         toast.warning("Lead đã lưu, nhưng email chưa gửi được.", {
           description: "Kiểm tra cấu hình email tự động trong Admin.",
         });
+      }
+
+      if (emailDeliveryFailed) {
+        submittingRef.current = false;
+        setError("Lead đã lưu và webhook đã gửi, nhưng email chưa gửi được. Kiểm tra cấu hình email rồi thử lại email test.");
+        setStatus("error");
+        return;
       }
 
       // Chỉ bắn tracking SAU khi dữ liệu đã gửi thành công
