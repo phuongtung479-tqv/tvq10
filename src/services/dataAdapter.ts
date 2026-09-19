@@ -862,7 +862,8 @@ export async function saveLead(
   const mode: StorageMode =
     config?.admin.storageMode === "database" ? "database" : "local";
   const record: LeadRecord = { ...lead, storage: mode };
-  if (mode === "local") cacheLeadLocally(record);
+  // Keep the Mini-CRM responsive even while the cloud insert is pending.
+  cacheLeadLocally(record);
   if (mode === "database" && config) {
     const ok = await pushLeadToSupabase(
       record,
@@ -871,7 +872,14 @@ export async function saveLead(
     );
     if (!ok) {
       record.storage = "local";
-      cacheLeadLocally(record);
+      try {
+        const localLeads = loadLeads().map((item) =>
+          item.id === record.id ? record : item,
+        );
+        window.localStorage.setItem(LEADS_KEY, JSON.stringify(localLeads));
+      } catch {
+        /* local cache is best effort */
+      }
     }
   }
   return record;

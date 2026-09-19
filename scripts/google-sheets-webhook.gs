@@ -96,10 +96,17 @@ function writePayload(payload) {
 }
 
 function parsePayload(event) {
+  if (event && event.parameter && event.parameter.payload) {
+    return parseJsonPayload(event.parameter.payload);
+  }
   if (!event || !event.postData || !event.postData.contents) {
     throw new Error("Missing JSON request body");
   }
-  const payload = JSON.parse(event.postData.contents);
+  return parseJsonPayload(event.postData.contents);
+}
+
+function parseJsonPayload(raw) {
+  const payload = JSON.parse(raw);
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new Error("Payload must be a JSON object");
   }

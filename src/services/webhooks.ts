@@ -176,20 +176,26 @@ async function postOne(
 
     if (ep.type === "sheets") {
       try {
-        // Apps Script Web Apps may redirect and omit CORS headers. A simple
-        // text/plain POST avoids preflight and lets the Web App parse JSON.
-        await fetch(endpoint, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(body),
-          keepalive: true,
-        });
+        // Apps Script Web Apps redirect their POST URL. Form-encoded Beacon
+        // preserves the body through that redirect without CORS/preflight.
+        const encoded = new URLSearchParams({
+          payload: JSON.stringify(body),
+        }).toString();
+        const queued =
+          typeof navigator !== "undefined" && navigator.sendBeacon
+            ? navigator.sendBeacon(
+                endpoint,
+                new Blob([encoded], {
+                  type: "application/x-www-form-urlencoded;charset=UTF-8",
+                }),
+              )
+            : false;
+        if (!queued) throw new Error("Browser did not queue Sheets request");
         return {
           label: ep.label || ep.type,
           ok: true,
           attempts: 1,
-          detail: "browser_direct_sent",
+          detail: "browser_direct_queued",
         };
       } catch (error) {
         return {
