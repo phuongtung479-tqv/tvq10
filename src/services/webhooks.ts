@@ -190,12 +190,20 @@ async function postOne(
                 }),
               )
             : false;
-        if (!queued) throw new Error("Browser did not queue Sheets request");
+        if (!queued) {
+          await fetch(endpoint, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+            body: encoded,
+            keepalive: true,
+          });
+        }
         return {
           label: ep.label || ep.type,
           ok: true,
           attempts: 1,
-          detail: "browser_direct_queued",
+          detail: queued ? "browser_direct_queued" : "browser_direct_sent",
         };
       } catch (error) {
         return {

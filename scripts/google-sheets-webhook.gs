@@ -16,7 +16,14 @@ function removeLegacyTriggers() {
 }
 
 function doGet() {
-  return jsonResponse({ ok: true, service: "tvq10-google-sheets-webhook" });
+  var properties = PropertiesService.getScriptProperties();
+  return jsonResponse({
+    ok: true,
+    service: "tvq10-google-sheets-webhook",
+    last_received_at: properties.getProperty("tvq10_last_received_at") || "",
+    last_delivery_id: properties.getProperty("tvq10_last_delivery_id") || "",
+    last_error: properties.getProperty("tvq10_last_error") || "",
+  });
 }
 
 // Chạy thủ công hàm này trong Apps Script để kiểm tra quyền ghi vào Sheet.
@@ -41,8 +48,14 @@ function testWebhookInSheet() {
 function doPost(event) {
   try {
     const payload = parsePayload(event);
-    return jsonResponse(writePayload(payload));
+    var result = writePayload(payload);
+    var properties = PropertiesService.getScriptProperties();
+    properties.setProperty("tvq10_last_received_at", new Date().toISOString());
+    properties.setProperty("tvq10_last_delivery_id", String(payload.webhook_delivery_id || payload.idempotency_key || ""));
+    properties.deleteProperty("tvq10_last_error");
+    return jsonResponse(result);
   } catch (error) {
+    PropertiesService.getScriptProperties().setProperty("tvq10_last_error", String(error && error.message ? error.message : error));
     return jsonResponse({ ok: false, error: String(error && error.message ? error.message : error) }, 500);
   }
 }

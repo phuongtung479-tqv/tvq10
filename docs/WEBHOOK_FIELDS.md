@@ -16,6 +16,9 @@ Script, mỗi lead được ghi vào tab `Leads`; các object/array được ghi
   `raw_payload` để đối soát request.
 - Không điền Google Sheets API key vào ô URL. Apps Script Web App dùng URL `/exec`
   và quyền `Who has access: Anyone`.
+- Mở URL `/exec` bằng trình duyệt để xem trạng thái `last_received_at`,
+  `last_delivery_id` và `last_error`. Nếu `last_received_at` không đổi sau khi
+  submit, request chưa tới Apps Script hoặc deployment đang dùng bản cũ.
 
 ## Trường dữ liệu
 

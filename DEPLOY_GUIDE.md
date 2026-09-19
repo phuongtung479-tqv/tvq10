@@ -360,3 +360,9 @@ curl -i -X POST 'URL_APPS_SCRIPT_EXEC' \
 
 Kết quả đúng là JSON có `"ok":true` và một dòng mới trong tab `Leads`. Gửi lại
 cùng `idempotency_key` phải trả `"duplicate":true` và không tạo thêm dòng.
+
+Để kiểm tra Apps Script có thực sự nhận request, mở trực tiếp URL `/exec`. JSON
+phải có `last_received_at` mới nhất và `last_delivery_id` trùng với payload
+webhook. Nếu email không tới, vào Admin → Tự Động Hóa Email → Kiểm tra cấu hình
+email; Resend cần `RESEND_API_KEY` và `RESEND_FROM_EMAIL` trên Vercel, From phải
+thuộc domain đã xác minh. Chế độ Resend testing chỉ gửi tới email chủ tài khoản.
